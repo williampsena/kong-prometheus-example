@@ -4,6 +4,7 @@ services:
   kong:
     build: 
       context: ./
+      dockerfile: Kong.Dockerfile
     environment:
       KONG_LOG_LEVEL: debug
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
@@ -18,5 +19,42 @@ services:
       - "8000:8000"
       - "8100:8100"
     restart: unless-stopped
+    networks:
+      - kong_grafana
     volumes:
       - ./config/kong.yml:/usr/local/kong/declarative/kong.yml
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes: 
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - kong_grafana
+
+  grafana:
+      build:
+        context: ./
+        dockerfile: Grafana.Dockerfile
+      ports: 
+        - 9091:9091
+      volumes: 
+        - ./grafana.ini:/etc/grafana/grafana.ini
+        - ./datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+        - grafana-storage:/var/lib/grafana
+      networks:
+        - kong_grafana
+
+  seed:
+    build:
+      context: ./
+      dockerfile: Seed.Dockerfile
+    networks:
+      - kong_grafana
+
+volumes:
+  grafana-storage:
+
+networks:
+  kong_grafana:

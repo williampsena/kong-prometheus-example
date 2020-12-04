@@ -1,12 +1,20 @@
 
 _format_version: "1.1"
 
+plugins:
+- name: prometheus
+
 services:
-- name: hello_world
-  url: https://example.com
-  plugins:
-  - name: prometheus
+- name: coins
+  url: https://api.coindesk.com/v1/bpi/currentprice.json
   routes:
-  - name: hello_world
+  - name: coins
     paths:
-    - /
+    - /coins
+
+- name: money
+  url: https://economia.awesomeapi.com.br/json/all
+  routes:
+  - name: money
+    paths:
+    - /money
