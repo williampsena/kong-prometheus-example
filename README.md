@@ -22,19 +22,21 @@ docker compose up -d
 
 # Kong
 
-- Hello Route [http://localhost:8000/]
-- Whoami Route [http://localhost:8000/whoami]
-- Coins Route [http://localhost:8000/coins]
-- Money Route [http://localhost:8000/money]
-- Kong Admin url: [http://localhost:8001]
-- Metrics url used by Prometheus: [http://localhost:8100/metrics]
-- Grafana url: [http://localhost:9091]
+Kong runs in DBLess mode, and all functionalities are described in [kong.yml](./kong/kong.yml).
+
+- Hello Route:  http://localhost:8000
+- Whoami Route: http://localhost:8000/whoami
+- Coins Route: http://localhost:8000/coins
+- Money Route: http://localhost:8000/money
+- Kong Admin url: http://localhost:8001
+- Metrics url used by Prometheus: http://localhost:8100/metrics
+- Grafana url: http://localhost:9091
  
  # Prometheus
 
  Prometheus is in charge of scraping metrics from Kong every specified number of seconds, checkout file [prometheus.yml](./prometheus/prometheus.yml)
 
- - Prometheus url: [http://localhost:9090]
+ - Prometheus url: http://localhost:9090
 
 # Grafana
 
@@ -61,4 +63,5 @@ References:
 # Grafana 
 
 Default and secure credentials 🤣: 
-    - admin/admin
+
+- **admin/admin**
