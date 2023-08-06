@@ -1,60 +1,105 @@
-version: '3.7'
+version: '3.8'
+
+x-healthcheck: &defautl-healthcheck
+  interval: 10s
+  timeout: 3s
+  start_period: 1s
 
 services:
   kong:
-    build: 
-      context: ./
-      dockerfile: Kong.Dockerfile
+    image: kong:3.3.1-alpine
     environment:
-      KONG_LOG_LEVEL: debug
+      KONG_LOG_LEVEL: info
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
-      KONG_PLUGINS: "bundled"
-      KONG_DNS_RESOLVER: "8.8.8.8"
-      KONG_LUA_PACKAGE_PATH: /usr/local/kong/plugins
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
       KONG_STATUS_LISTEN: "0.0.0.0:8100"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    healthcheck:
+        <<: *defautl-healthcheck
+        test: ["CMD-SHELL", "nc -z -v localhost 8000"]
     ports:
       - "8000:8000"
+      - "8001:8001"
       - "8100:8100"
     restart: unless-stopped
     networks:
-      - kong_grafana
+      - kong-grafana
     volumes:
-      - ./config/kong.yml:/usr/local/kong/declarative/kong.yml
+      - ./kong/kong.yml:/etc/kong/kong.yml
+    depends_on:
+      - nginx
+      - whoami
+      - whoami-2
 
   prometheus:
     image: prom/prometheus
     ports:
       - 9090:9090
+    healthcheck:
+      <<: *defautl-healthcheck
+      test: ["CMD-SHELL", "nc -z -v localhost 9090"]
     volumes: 
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
-      - kong_grafana
+      - kong-grafana
+    depends_on:
+      - kong
 
   grafana:
-      build:
-        context: ./
-        dockerfile: Grafana.Dockerfile
-      ports: 
-        - 9091:9091
-      volumes: 
-        - ./grafana.ini:/etc/grafana/grafana.ini
-        - ./datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
-        - grafana-storage:/var/lib/grafana
-      networks:
-        - kong_grafana
+    image: grafana/grafana
+    ports: 
+      - 9091:9091
+    healthcheck:
+        <<: *defautl-healthcheck
+        test: ["CMD-SHELL", "nc -z -v localhost 9091"]
+    volumes: 
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - kong-grafana
+    depends_on:
+      - prometheus
+
+  nginx:
+    build:
+      context: ./
+      dockerfile: nginx.Dockerfile
+    image: nginx-local-server
+    healthcheck:
+      <<: *defautl-healthcheck
+      test: ["CMD-SHELL", "nginx -t"]
+    networks:
+      - kong-grafana
+
+  whoami:
+    image: traefik/whoami
+    environment:
+      - WHOAMI_PORT_NUMBER=80
+    networks:
+      - kong-grafana
+
+  whoami-2:
+    image: traefik/whoami
+    environment:
+      - WHOAMI_PORT_NUMBER=80
+    networks:
+      - kong-grafana
 
   seed:
     build:
       context: ./
-      dockerfile: Seed.Dockerfile
+      dockerfile: seed.Dockerfile
     networks:
-      - kong_grafana
+      - kong-grafana
+    depends_on:
+      - kong
 
 volumes:
   grafana-storage:
 
 networks:
-  kong_grafana:
+  kong-grafana:
+    name: "kong-grafana"

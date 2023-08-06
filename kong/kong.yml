@@ -1,0 +1,76 @@
+
+_format_version: "3.0"
+
+plugins:
+- name: prometheus
+  config:
+    status_code_metrics: true
+    latency_metrics: true
+    bandwidth_metrics: true
+    upstream_health_metrics: true
+
+services:
+- name: hello
+  url: http://local-server
+  routes:
+  - name: hello
+    paths:
+    - /
+
+- name: whoami
+  url: http://whoami
+  routes:
+  - name: whoami
+    paths:
+    - /whoami
+
+- name: coins
+  url: https://coins-api/v1/bpi/currentprice.json
+  routes:
+  - name: coins
+    paths:
+    - /coins
+
+- name: money
+  url: https://money-api/json/all
+  routes:
+  - name: money
+    paths:
+    - /money
+
+upstreams:
+  - name: coins-api
+    targets:
+    - target: api.coindesk.com:443
+
+  - name: money-api
+    targets:
+    - target: economia.awesomeapi.com.br:443
+
+  - name: local-server
+    targets:
+    - target: nginx:5000
+
+  - name: whoami
+    targets:
+    - target: whoami:80
+      weight: 50
+    - target: whoami-2:80
+      weight: 50
+    - target: invalid-whoami-2:80
+      weight: 1
+    healthchecks:
+      passive:
+        healthy:
+          http_statuses:
+          - 200
+          successes: 1
+        type: http
+        unhealthy:
+          http_failures: 5
+          http_statuses:
+          - 429
+          - 500
+          - 503
+          tcp_failures: 2
+          timeouts: 2
